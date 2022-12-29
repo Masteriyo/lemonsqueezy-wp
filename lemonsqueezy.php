@@ -47,6 +47,9 @@ if ( ! function_exists( 'lsq_run_plugin' ) ) {
 		$textdomain_dir = plugin_basename( dirname( __FILE__ ) ) . '/languages';
 		load_plugin_textdomain( 'lemonsqueezy', false, $textdomain_dir );
 
+		// Include helper functions.
+		include_once LSQ_PATH . 'src/helper/arr.php';
+
 		// Initialize classes.
 		include_once LSQ_PATH . 'src/class-lsq-oauth.php';
 		include_once LSQ_PATH . 'src/class-lsq-updater.php';

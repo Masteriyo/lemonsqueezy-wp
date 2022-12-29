@@ -251,11 +251,24 @@ class LSQ_Rest_Controller {
 			$error_message = $response->get_error_message();
 		}
 
+		$order_id = isset( $body['meta']['order_id'] ) ? $body['meta']['order_id'] : 0;
+
+		if ( $order_id ) {
+			$variant = $this->get_variant_from_order( $order_id );
+		}
+
+		if ( $variant ) {
+			foreach ( $variant as $key => $value ) {
+				$body = lsq_array_add( $body, "meta.{$key}", $value );
+			}
+		}
+
+
 		return new \WP_REST_Response(
 			array(
 				'success' => $is_valid,
 				'error'   => $error_message,
-				'data'    => $body,
+				'data'    => lsq_array_add( $body, 'meta', $variant ),
 			),
 			$is_valid ? 200 : 400
 		);
@@ -583,5 +596,55 @@ class LSQ_Rest_Controller {
 			),
 			200
 		);
+	}
+
+	/**
+	 * Return variant data from order id.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param int $order_id
+	 * @return stdClass
+	 */
+	public function get_variant_from_order( $order_id ) {
+		if ( empty( $order_id ) ) {
+			return array();
+		}
+
+		$response = wp_remote_get(
+			'https://api.lemonsqueezy.com/v1/orders/' . $order_id,
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . get_option( 'lsq_api_key' ),
+					'Accept'        => 'application/vnd.api+json',
+					'Content-Type'  => 'application/vnd.api+json',
+					'Cache-Control' => 'no-cache',
+				),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return array();
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( is_null( $data ) ) {
+			return array();
+		}
+
+		$variant_id   = absint( lsq_array_get( $data, 'data.attributes.first_order_item.variant_id' ) );
+		$variant_name = lsq_array_get( $data, 'data.attributes.first_order_item.variant_name' );
+
+		if ( $variant_id ) {
+			return array(
+				'variant' => array(
+					'id' => $variant_id,
+					'name' => $variant_name,
+				),
+			);
+		}
+
+		return array();
 	}
 }
