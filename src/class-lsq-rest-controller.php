@@ -143,6 +143,28 @@ class LSQ_Rest_Controller {
 				},
 			)
 		);
+
+
+		register_rest_route(
+			$namespace,
+			'/variant/',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_variant_from_order' ),
+				'args'                => array(
+					'order_id' => [
+						'description' => 'Order ID',
+						'type'        => 'int',
+						'required'    => true,
+						'sanitize_callback' => 'absint',
+					],
+				),
+				'permission_callback' => function( \WP_REST_Request $request ) {
+					return true;
+				},
+			)
+		);
+
 	}
 
 	/**
@@ -254,7 +276,7 @@ class LSQ_Rest_Controller {
 		$order_id = isset( $body['meta']['order_id'] ) ? $body['meta']['order_id'] : 0;
 
 		if ( $order_id ) {
-			$variant = $this->get_variant_from_order( $order_id );
+			$variant = $this->fetch_variant_from_order( $order_id );
 		}
 
 		if ( $variant ) {
@@ -606,7 +628,7 @@ class LSQ_Rest_Controller {
 	 * @param int $order_id
 	 * @return stdClass
 	 */
-	public function get_variant_from_order( $order_id ) {
+	public function fetch_variant_from_order( $order_id ) {
 		if ( empty( $order_id ) ) {
 			return array();
 		}
@@ -647,4 +669,18 @@ class LSQ_Rest_Controller {
 
 		return array();
 	}
+
+
+	/**
+	 * Validate and return a software update from the Lemon Squeezy API.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_Error|WP_REST_Request
+	 */
+	public function get_variant_from_order( $request ) {
+		$order_id = isset( $request['order_id'] ) ? absint( $request['order_id'] ) : 0;
+
+		return lsq_array_get( $this->fetch_variant_from_order( $order_id ), 'variant', array() );
+ 	}
+
 }
